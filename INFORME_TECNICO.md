@@ -5,7 +5,8 @@ Este documento técnico detalla la arquitectura, el diseño de ingeniería de so
 ---
 
 ## 👥 Equipo de Proyecto
-* **Equipo:** Deep Minds (Emerson Ruben, Fermin, Jean Marco y Mijael)
+* **Equipo:** Grupo Arthes Nemethins (MAMANI MENDOZA JOSEPH ELVIS
+, TAPARA CCAHUANA PAUL RENMIS
 * **Curso:** Aprendizaje de Máquina (9no Semestre)
 * **Institución:** Universidad Nacional del Altiplano - Puno
 * **Fecha:** Viernes 29 de mayo de 2026
