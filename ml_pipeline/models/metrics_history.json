@@ -1,0 +1,18 @@
+[
+  {
+    "version": "20260529_111559",
+    "mse": 88.5932,
+    "mae": 7.4543,
+    "r2": 0.8731,
+    "best_params": {
+      "regressor__colsample_bytree": "0.8",
+      "regressor__learning_rate": "0.1",
+      "regressor__max_depth": "3",
+      "regressor__n_estimators": "200",
+      "regressor__subsample": "0.8"
+    },
+    "trained_at": "2026-05-29T11:15:59.822138",
+    "data_records": 5000,
+    "data_seed": 42
+  }
+]

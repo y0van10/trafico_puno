@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: punotraffic_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml_pipeline/models:/app/models
+    environment:
+      - MODEL_PATH=/app/models/traffic_model_latest.joblib
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

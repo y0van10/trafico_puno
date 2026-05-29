@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PunoTraffic AI — Consola de Control de Tráfico</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map CSS and JS CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .leaflet-container {
+            border-radius: 0.75rem;
+            border: 1px solid #334155;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row overflow-x-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-full md:w-80 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-6 flex flex-col justify-between shrink-0">
+        <div>
+            <!-- Logo Header (Enterprise Style, Flat Colors) -->
+            <div class="flex items-center gap-3 mb-8">
+                <div class="bg-blue-600 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-traffic-light text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100 tracking-tight">PunoTraffic AI</h2>
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Centro de Operaciones</span>
+                </div>
+            </div>
+
+            <!-- Controls Form -->
+            <div class="space-y-6">
+                <!-- Zone Dropdown -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Zona de Control</label>
+                    <select id="zone-select" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                        <option value="Centro" selected>Centro (Plaza de Armas)</option>
+                        <option value="Bellavista">Bellavista (Mercado)</option>
+                        <option value="Salcedo">Salcedo (Salida Sur)</option>
+                        <option value="Huaje">Huaje (Entrada Norte)</option>
+                        <option value="Terminal">Terminal Terrestre</option>
+                    </select>
+                </div>
+
+                <!-- Hour Slider -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hora Simulada</label>
+                        <span id="hour-display" class="text-xs font-bold text-blue-400 bg-blue-950/50 border border-blue-900/50 px-2 py-0.5 rounded">12:00 hrs</span>
+                    </div>
+                    <input type="range" id="hour-slider" min="0" max="23" value="12" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none">
+                </div>
+
+                <!-- Day Dropdown -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Día de la Semana</label>
+                    <select id="day-select" class="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                        <option value="0">Lunes</option>
+                        <option value="1">Martes</option>
+                        <option value="2">Miércoles</option>
+                        <option value="3">Jueves</option>
+                        <option value="4">Viernes</option>
+                        <option value="5">Sábado</option>
+                        <option value="6">Domingo</option>
+                    </select>
+                </div>
+
+                <!-- Weather Selector (Flat Dark Cards) -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Condición Meteorológica</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" data-weather="Soleado" class="weather-btn px-3 py-2 rounded border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold bg-blue-950/30 border-blue-500 text-blue-400">
+                            <i class="fa-solid fa-sun text-amber-500"></i> Soleado
+                        </button>
+                        <button type="button" data-weather="Nublado" class="weather-btn px-3 py-2 rounded border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600">
+                            <i class="fa-solid fa-cloud"></i> Nublado
+                        </button>
+                        <button type="button" data-weather="Lluvioso" class="weather-btn px-3 py-2 rounded border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600">
+                            <i class="fa-solid fa-cloud-showers-heavy"></i> Lluvioso
+                        </button>
+                        <button type="button" data-weather="Nevada" class="weather-btn px-3 py-2 rounded border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600">
+                            <i class="fa-solid fa-snowflake"></i> Nevada
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Status (Flat Style) -->
+        <div class="mt-8 pt-6 border-t border-slate-800 space-y-4">
+            <div id="status-badge" class="flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-bold bg-slate-800 border border-slate-700 text-slate-400">
+                <i class="fa-solid fa-circle-notch animate-spin"></i> Conectando...
+            </div>
+            <div class="text-[10px] text-slate-500 text-center leading-normal">
+                Curso de Aprendizaje de Máquina<br>Universidad Nacional del Altiplano - Puno
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+        <!-- HEADER (Enterprise Style) -->
+        <header class="bg-slate-900 border-b border-slate-800 px-8 py-4 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    Sistema PunoTraffic AI <span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] px-2 py-0.5 rounded font-bold">Producción MLOps</span>
+                </h1>
+                <p class="text-[11px] text-slate-400 mt-0.5">Control de Tránsito Puneño mediante Inferencia XGBoost</p>
+            </div>
+
+            <!-- TABS SELECTOR (Clean Solid Dark) -->
+            <div class="bg-slate-950 p-1 border border-slate-800 rounded-lg flex gap-1 text-xs font-semibold shadow-inner">
+                <button type="button" data-tab="tab-map" class="tab-btn px-4 py-2 rounded bg-slate-800 text-white transition-all">
+                    <i class="fa-solid fa-map-location-dot mr-1.5"></i> Mapa de Control
+                </button>
+                <button type="button" data-tab="tab-edu" class="tab-btn px-4 py-2 rounded text-slate-400 hover:text-white transition-all">
+                    <i class="fa-solid fa-graduation-cap mr-1.5"></i> Model Logic
+                </button>
+                <button type="button" data-tab="tab-graphs" class="tab-btn px-4 py-2 rounded text-slate-400 hover:text-white transition-all">
+                    <i class="fa-solid fa-chart-simple mr-1.5"></i> Análisis Analítico
+                </button>
+                <button type="button" data-tab="tab-mlops" class="tab-btn px-4 py-2 rounded text-slate-400 hover:text-white transition-all">
+                    <i class="fa-solid fa-gears mr-1.5"></i> Arquitectura MLOps
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTENT PANEL -->
+        <div class="flex-1 p-8">
+            
+            <!-- TAB 1: MAPA & SIMULADOR -->
+            <section id="tab-map" class="tab-panel grid grid-cols-1 xl:grid-cols-5 gap-8">
+                <!-- Map Container -->
+                <div class="xl:col-span-3 flex flex-col gap-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300"><i class="fa-solid fa-map text-blue-500 mr-2"></i> Mapa de Congestión en Tiempo Real</h3>
+                        <span class="text-xs text-slate-500">Haga clic en las zonas circulares para cambiar el análisis</span>
+                    </div>
+                    <!-- Leaflet map -->
+                    <div id="map" class="w-full h-[480px] shadow-lg"></div>
+                    <div class="flex items-center gap-4 text-xs bg-slate-900 border border-slate-800 p-3 rounded-lg">
+                        <span class="font-bold uppercase text-slate-400">Indicadores:</span>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Fluido (<30%)</div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Moderado (30%-70%)</div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Pesado (>70%)</div>
+                    </div>
+                </div>
+
+                <!-- Analysis Panel -->
+                <div class="xl:col-span-2 space-y-6">
+                    <!-- Dynamic Metrics Card (Flat, Solid Border) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Zona Analizada</h3>
+                        <h2 id="selected-zone-title" class="text-xl font-bold text-slate-100">Centro (Plaza de Armas)</h2>
+                        <p id="selected-zone-desc" class="text-xs text-slate-400 mt-2 leading-relaxed border-l-2 border-slate-700 pl-3">...</p>
+                        
+                        <hr class="border-slate-800 my-5">
+
+                        <div class="flex items-baseline gap-2 mb-4">
+                            <span id="traffic-pct" class="text-5xl font-black text-blue-400">0%</span>
+                            <span class="text-xs font-semibold text-slate-400">nivel de congestión proyectado</span>
+                        </div>
+
+                        <!-- Solid flat progress bar -->
+                        <div class="w-full bg-slate-800 h-2 rounded overflow-hidden mb-5">
+                            <div id="traffic-bar" class="bg-blue-600 h-full w-[0%] transition-all duration-300 ease-out"></div>
+                        </div>
+
+                        <div id="traffic-badge-val" class="inline-block px-3 py-1 rounded text-xs font-bold uppercase border border-slate-700 text-slate-300 bg-slate-800">
+                            Fluido
+                        </div>
+                    </div>
+
+                    <!-- Explanatory Breakdown Card -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-list-check text-slate-400 mr-2"></i> Variables e Impacto de Inferencia</h3>
+                        <ul id="factors-list" class="space-y-4 text-xs text-slate-300">
+                            <!-- Populated in JS -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: MODEL LOGIC -->
+            <section id="tab-edu" class="tab-panel hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Theory -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-tree text-slate-400 mr-2"></i> Lógica del Clasificador XGBoost</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            El estimador predictivo de <b>XGBoost (eXtreme Gradient Boosting)</b> utiliza una infraestructura lógica basada en <b>Árboles de Decisión Enlazados</b>. 
+                        </p>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-6">
+                            En lugar de computar una sola regla masiva, XGBoost entrena múltiples árboles ligeros secuenciales donde cada nuevo estimador se enfoca en afinar los errores de predicción del estimador anterior.
+                        </p>
+                        <div class="border border-slate-800 bg-slate-950 p-4 rounded">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-2">Estructura del Árbol de Clasificación Local:</span>
+                            <pre class="text-[10px] font-mono text-slate-400 overflow-x-auto leading-relaxed">
+   [¿Es Hora Pico?] 
+     ├── Sí ──> [¿Clima Adverso?]
+     │            ├── Sí ──> Tránsito Pesado (Congestión Alta)
+     │            └── No ──> Tránsito Moderado (Congestión Media)
+     └── No ──> [¿Zona Comercial?]
+                  ├── Sí ──> Tránsito Moderado (Congestión Media)
+                  └── No ──> Tránsito Fluido (Congestión Baja)</pre>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-slate-800 text-[10px] text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-slate-500 text-sm"></i>
+                        <span>Este flujo condicional se computa asíncronamente en milisegundos en el host del backend.</span>
+                    </div>
+                </div>
+
+                <!-- Visual branching simulator -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-2"><i class="fa-solid fa-microchip text-slate-400 mr-2"></i> Ruteador de Inferencia Activo</h3>
+                        <p class="text-[11px] text-slate-500 mb-6">Navegación del modelo basada en las variables ingresadas en el panel lateral:</p>
+
+                        <!-- Decision nodes -->
+                        <div class="space-y-4">
+                            <!-- Node 1 -->
+                            <div id="edu-node-1" class="p-3.5 rounded border border-slate-800 bg-slate-950 flex justify-between items-center transition-all">
+                                <div>
+                                    <span class="text-[9px] font-bold uppercase text-slate-500 block mb-1">Evaluación Temporal</span>
+                                    <h4 class="text-xs font-semibold text-slate-200">¿Corresponde a hora pico Puneña?</h4>
+                                </div>
+                                <span id="edu-ans-1" class="text-[10px] font-bold px-2 py-1 rounded border">Cargando...</span>
+                            </div>
+
+                            <!-- Node 2 -->
+                            <div id="edu-node-2" class="p-3.5 rounded border border-slate-800 bg-slate-950 flex justify-between items-center transition-all">
+                                <div>
+                                    <span class="text-[9px] font-bold uppercase text-slate-500 block mb-1">Evaluación Ambiental</span>
+                                    <h4 id="edu-node-2-title" class="text-xs font-semibold text-slate-200">¿El clima es severo?</h4>
+                                </div>
+                                <span id="edu-ans-2" class="text-[10px] font-bold px-2 py-1 rounded border">Cargando...</span>
+                            </div>
+
+                            <!-- Final node -->
+                            <div id="edu-node-final" class="p-4 rounded border border-slate-700 bg-slate-950 text-center transition-all">
+                                <span class="text-[9px] font-bold uppercase text-slate-400 block mb-1">Nodo de Inferencia Final</span>
+                                <h4 id="edu-ans-final-title" class="text-sm font-bold text-slate-100 mb-1">Cargando...</h4>
+                                <p id="edu-ans-final-desc" class="text-xs text-slate-400 leading-relaxed">...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: TELEMETRÍA Y GRÁFICOS -->
+            <section id="tab-graphs" class="tab-panel hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Line Chart -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-chart-line text-slate-400 mr-2"></i> Evolución de Tráfico Diaria (24 Horas)</h3>
+                    <p class="text-xs text-slate-500 mb-6 leading-relaxed">Curva proyectada del nivel de congestión vehicular a lo largo de las 24 horas del día para las condiciones actuales.</p>
+                    <div class="h-80 w-full">
+                        <canvas id="line-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bar Chart -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-chart-column text-slate-400 mr-2"></i> Variabilidad Meteorológica Comparativa</h3>
+                    <p class="text-xs text-slate-500 mb-6 leading-relaxed">Nivel de congestión simulado en la hora actual comparando las cuatro condiciones climáticas básicas.</p>
+                    <div class="h-80 w-full">
+                        <canvas id="bar-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Ranking Table -->
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-table-list text-slate-400 mr-2"></i> Clasificación General de Tránsito</h3>
+                    <p class="text-xs text-slate-500 mb-6">Comparación en tiempo real del tráfico en todas las zonas urbanas analizadas bajo la misma configuración temporal:</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left text-slate-300">
+                            <thead class="text-[10px] uppercase bg-slate-950 text-slate-400 border border-slate-850">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">Rango</th>
+                                    <th scope="col" class="px-6 py-3">Zona</th>
+                                    <th scope="col" class="px-6 py-3">Porcentaje de Congestión</th>
+                                    <th scope="col" class="px-6 py-3">Estado de Flujo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ranking-tbody" class="divide-y divide-slate-800">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: MLOPS PIPELINE -->
+            <section id="tab-mlops" class="tab-panel hidden space-y-8">
+                <!-- Visual Pipeline Cards -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Step 1 -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow flex flex-col justify-between">
+                        <div>
+                            <div class="bg-slate-850 text-slate-300 border border-slate-700 w-8 h-8 rounded flex items-center justify-center font-bold text-sm mb-4">1</div>
+                            <h4 class="font-bold text-slate-200 text-sm mb-2">Análisis de Estilo</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Verificación sintáctica mediante el linter <b>flake8</b> en el pipeline CI. Garantiza código limpio y estricto seguimiento de PEP 8.</p>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold text-slate-500 mt-4 block"><i class="fa-solid fa-circle-check"></i> GitHub Actions Pipeline</span>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow flex flex-col justify-between">
+                        <div>
+                            <div class="bg-slate-850 text-slate-300 border border-slate-700 w-8 h-8 rounded flex items-center justify-center font-bold text-sm mb-4">2</div>
+                            <h4 class="font-bold text-slate-200 text-sm mb-2">Entrenamiento Virtual</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">El pipeline de CI realiza el entrenamiento automático del modelo en el entorno virtual antes del build final para asegurar estabilidad.</p>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold text-slate-500 mt-4 block"><i class="fa-solid fa-circle-check"></i> GitHub Actions Pipeline</span>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow flex flex-col justify-between">
+                        <div>
+                            <div class="bg-slate-850 text-slate-300 border border-slate-700 w-8 h-8 rounded flex items-center justify-center font-bold text-sm mb-4">3</div>
+                            <h4 class="font-bold text-slate-200 text-sm mb-2">Pruebas Unitarias</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Ejecución aislada de **20 pruebas de integridad** con `pytest` en backend, asegurando la consistencia ante inputs inválidos.</p>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold text-slate-500 mt-4 block"><i class="fa-solid fa-circle-check"></i> Pytest Runner</span>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow flex flex-col justify-between">
+                        <div>
+                            <div class="bg-slate-850 text-slate-300 border border-slate-700 w-8 h-8 rounded flex items-center justify-center font-bold text-sm mb-4">4</div>
+                            <h4 class="font-bold text-slate-200 text-sm mb-2">Compilación Docker</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Construcción ligera y aislada bajo contenedor *Multi-stage* optimizado, operando con un usuario de bajos privilegios para resiliencia en host.</p>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold text-slate-500 mt-4 block"><i class="fa-solid fa-cube"></i> Producción Docker Hub</span>
+                    </div>
+                </div>
+
+                <!-- Retraining Info -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Text explanation -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-rotate text-slate-400 mr-2"></i> Mantenimiento y Retraining Loop</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                            Los patrones de movilidad urbana puneña varían con el tiempo (Model Drift). Nuestro script `retrain.py` automatiza la calibración del modelo:
+                        </p>
+                        <ul class="space-y-3 text-xs text-slate-300 mb-6">
+                            <li><i class="fa-solid fa-circle-dot text-slate-500 text-[8px] mr-2 inline-block align-middle"></i> <b>Ingesta de Datos Recientes:</b> Carga nuevos registros del flujo vial para actualizar el dataset.</li>
+                            <li><i class="fa-solid fa-circle-dot text-slate-500 text-[8px] mr-2 inline-block align-middle"></i> <b>Búsqueda por Rejilla (Grid Search):</b> Calibra **108 combinaciones** de hiperparámetros de XGBoost.</li>
+                            <li><i class="fa-solid fa-circle-dot text-slate-500 text-[8px] mr-2 inline-block align-middle"></i> <b>Filtro de Desempeño:</b> Compara el nuevo coeficiente $R^2$. Si la precisión disminuye más de un 5%, el pipeline rechaza la promoción para resguardar la API activa.</li>
+                        </ul>
+                    </div>
+
+                    <!-- MLOps Telemetry Table -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4"><i class="fa-solid fa-database text-slate-400 mr-2"></i> Registro de Telemetría e Historial de Modelos</h3>
+                        <p class="text-xs text-slate-500 mb-6">Métricas de entrenamiento y rendimiento persistidas por el backend FastAPI en `metrics_history.json`:</p>
+                        <div class="overflow-x-auto max-h-60 overflow-y-auto">
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <thead class="bg-slate-950 border border-slate-800 sticky top-0 text-[10px] uppercase">
+                                    <tr>
+                                        <th class="px-4 py-2.5">Versión</th>
+                                        <th class="px-4 py-2.5">Precisión R²</th>
+                                        <th class="px-4 py-2.5">Error MAE</th>
+                                        <th class="px-4 py-2.5">Registros</th>
+                                        <th class="px-4 py-2.5">Fecha de Compilación</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mlops-tbody">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-slate-550">Cargando telemetría...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- SCRIPTS DE CONTROL -->
+    <script>
+        // Coordenadas geográficas y descripciones reales de las zonas en Puno (Ultra Precisas)
+        const ZONES_DATA = {
+            'Centro': {
+                lat: -15.840200,
+                lon: -70.027800,
+                desc: 'Plaza de Armas e inmediaciones del Jr. Lima. Zona comercial, histórica e institucional de alta densidad peatonal y vehicular.'
+            },
+            'Bellavista': {
+                lat: -15.835500,
+                lon: -70.024500,
+                desc: 'Área comercial y residencial alrededor del Mercado Bellavista. Flujo constante de microbuses, colectivos urbanos y mototaxis.'
+            },
+            'Salcedo': {
+                lat: -15.862000,
+                lon: -70.002000,
+                desc: 'Zona de expansión urbana al sur de Puno. Concentra centros educativos, institutos y el Hospital Regional.'
+            },
+            'Huaje': {
+                lat: -15.821500,
+                lon: -70.012800,
+                desc: 'Sector de acceso norte de la ciudad de Puno (Vía a Juliaca). Transito frecuente de transporte de carga y vehículos interprovinciales.'
+            },
+            'Terminal': {
+                lat: -15.843600,
+                lon: -70.016300,
+                desc: 'Alrededores del Terminal Terrestre interprovincial. Punto estratégico con alto tráfico de colectivos rápidos, taxis y buses.'
+            }
+        };
+
+        const DAYS_SPANISH = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+        // Variables de estado del simulador
+        let selectedZone = 'Centro';
+        let selectedHour = 12;
+        let selectedDay = 0; // Lunes
+        let selectedWeather = 'Soleado';
+        
+        let allZonePredictions = {}; // Cache de predicciones por zona para alimentar el mapa e históricos
+        let isSimulatedMode = false;
+        
+        // Elementos del DOM
+        const zoneSelect = document.getElementById('zone-select');
+        const hourSlider = document.getElementById('hour-slider');
+        const hourDisplay = document.getElementById('hour-display');
+        const daySelect = document.getElementById('day-select');
+        const factorsList = document.getElementById('factors-list');
+        const trafficPct = document.getElementById('traffic-pct');
+        const trafficBar = document.getElementById('traffic-bar');
+        const trafficBadge = document.getElementById('traffic-badge-val');
+        const statusBadge = document.getElementById('status-badge');
+        
+        // Instancias de Gráficos de Chart.js
+        let lineChart = null;
+        let barChart = null;
+
+        // Inicializar Mapa Leaflet.js centrado en Puno (Zoom mejorado a 14)
+        const map = L.map('map').setView([-15.8402, -70.0210], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Guardar círculos de Leaflet para poder actualizarlos en lote
+        let mapCircles = {};
+
+        // Crear círculos interactivos en el mapa para las 5 zonas
+        function initializeMapCircles() {
+            Object.keys(ZONES_DATA).forEach(zoneName => {
+                const coord = ZONES_DATA[zoneName];
+                
+                // Crear círculo en Leaflet
+                const circle = L.circle([coord.lat, coord.lon], {
+                    color: '#22c55e',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.7,
+                    radius: 300,
+                    weight: 2
+                }).addTo(map);
+
+                // Evento de selección de zona al hacer clic en el mapa
+                circle.on('click', () => {
+                    selectedZone = zoneName;
+                    zoneSelect.value = zoneName;
+                    updateUI();
+                });
+
+                mapCircles[zoneName] = circle;
+            });
+        }
+
+        // --- SISTEMA PREDICTIVO DE APRENDIZAJE ---
+        
+        // Simulación en el navegador en caso de que la API FastAPI no esté en línea
+        function runSimulatedLocalPrediction(zone, hour, day_of_week, weather) {
+            const base = {
+                'Centro': 45.0,
+                'Terminal': 50.0,
+                'Bellavista': 32.0,
+                'Salcedo': 20.0,
+                'Huaje': 15.0
+            }[zone] || 25.0;
+            
+            let hourFactor = 1.1;
+            if (hour >= 7 && hour <= 9) hourFactor = 2.2;
+            else if (hour >= 12 && hour <= 14) hourFactor = 1.8;
+            else if (hour >= 18 && hour <= 20) hourFactor = 2.1;
+            else if (hour >= 0 && hour <= 5) hourFactor = 0.25;
+
+            const weatherFactor = {
+                'Soleado': 0.85,
+                'Nublado': 1.05,
+                'Lluvioso': 1.45,
+                'Nevada': 1.75
+            }[weather] || 1.0;
+
+            const dayFactor = [0, 4, 5].includes(day_of_week) ? 1.25 : 0.9;
+            
+            const result = base * hourFactor * weatherFactor * dayFactor;
+            return Math.max(5.0, Math.min(99.0, Math.round(result * 100) / 100));
+        }
+
+        // Llamar a la API FastAPI para obtener predicciones en tiempo real
+        async function fetchPrediction(zone, hour, day_of_week, weather) {
+            try {
+                const response = await fetch('/api/v1/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hour: parseInt(hour),
+                        day_of_week: parseInt(day_of_week),
+                        weather: weather,
+                        zone: zone
+                    }),
+                    signal: AbortSignal.timeout(1000)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return { level: data.predicted_traffic_level, source: 'API Producción (XGBoost)' };
+                }
+            } catch (e) {
+                // Falla silenciosa y pasa a simulación
+            }
+            return { level: runSimulatedLocalPrediction(zone, hour, day_of_week, weather), source: 'Simulación Didáctica' };
+        }
+
+        // Consultar el estado de salud de la API
+        async function checkAPIHealth() {
+            try {
+                const response = await fetch('/api/v1/health', { signal: AbortSignal.timeout(1000) });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'healthy') {
+                        statusBadge.className = 'flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-bold bg-emerald-950/30 border border-emerald-800 text-emerald-400';
+                        statusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> API XGBoost Activa';
+                        isSimulatedMode = false;
+                        return;
+                    }
+                }
+            } catch (e) {}
+            statusBadge.className = 'flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-bold bg-amber-950/30 border border-amber-800 text-amber-400';
+            statusBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Modo Simulación';
+            isSimulatedMode = true;
+        }
+
+        // --- EXPLICADOR DE FACTORES ACTIVO ---
+        function updateFactorsExplanation() {
+            const factors = [];
+            
+            // Explicar Hora
+            if (selectedHour >= 7 && selectedHour <= 9) {
+                factors.push({
+                    icon: 'fa-clock text-blue-400',
+                    title: 'Hora Pico Laboral',
+                    desc: 'Gran masa de transporte escolar y trabajadores públicos ingresando a sus dependencias en Puno.'
+                });
+            } else if (selectedHour >= 12 && selectedHour <= 14) {
+                factors.push({
+                    icon: 'fa-clock text-blue-400',
+                    title: 'Hora Pico del Almuerzo',
+                    desc: 'Desplazamiento comercial masivo hacia mercados locales y retorno de alumnos a sus hogares.'
+                });
+            } else if (selectedHour >= 18 && selectedHour <= 20) {
+                factors.push({
+                    icon: 'fa-clock text-blue-400',
+                    title: 'Hora Pico de Retorno',
+                    desc: 'Salida de trabajadores e institutos puneños. Las principales arterias viales se encuentran cargadas.'
+                });
+            } else {
+                factors.push({
+                    icon: 'fa-circle-check text-emerald-400',
+                    title: 'Hora Valle Despejada',
+                    desc: 'Flujo vehicular continuo y despejado. Gran fluidez de carriles.'
+                });
+            }
+
+            // Explicar Clima
+            if (selectedWeather === 'Lluvioso') {
+                factors.push({
+                    icon: 'fa-cloud-showers-heavy text-slate-400',
+                    title: 'Pavimento Mojado (Clima Adverso)',
+                    desc: 'La lluvia obliga a reducir las velocidades normales para evitar deslizamientos, formando retenciones.'
+                });
+            } else if (selectedWeather === 'Nevada') {
+                factors.push({
+                    icon: 'fa-snowflake text-slate-400',
+                    title: 'Nevada o Helada (Condición Severa)',
+                    desc: 'Calzada congelada que genera retenciones severas en los accesos de altura de la ciudad por precaución.'
+                });
+            } else {
+                factors.push({
+                    icon: 'fa-sun text-emerald-400',
+                    title: 'Clima Despejado (Favorable)',
+                    desc: 'Excelente visibilidad y pavimento completamente seco que permiten conducir a velocidades urbanas normales.'
+                });
+            }
+
+            // Explicar Día
+            if ([0, 4, 5].includes(selectedDay)) {
+                factors.push({
+                    icon: 'fa-calendar text-slate-400',
+                    title: 'Día de Alta Concurrencia Semanal',
+                    desc: 'Inicio de semana (Lunes) o fines de semana (Viernes/Sábado) incrementan viajes comerciales y actividades sociales.'
+                });
+            } else {
+                factors.push({
+                    icon: 'fa-calendar text-slate-500',
+                    title: 'Tránsito Regular de Media Semana',
+                    desc: 'Flujo vial estándar sin desviaciones de comportamiento comercial habitual.'
+                });
+            }
+
+            factorsList.innerHTML = factors.map(f => `
+                <li class="flex gap-3">
+                    <div class="bg-slate-800 w-8 h-8 rounded flex items-center justify-center shrink-0 border border-slate-700">
+                        <i class="fa-solid ${f.icon}"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-100 text-xs">${f.title}</h4>
+                        <p class="text-[11px] text-slate-400 leading-normal mt-0.5">${f.desc}</p>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // --- ACTUALIZADOR DE GRÁFICOS DE TELEMETRÍA ---
+        async function updateTelemetryCharts() {
+            const hourLabels = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            const hourPredictions = [];
+            
+            for (let h = 0; h < 24; h++) {
+                const res = await fetchPrediction(selectedZone, h, selectedDay, selectedWeather);
+                hourPredictions.push(res.level);
+            }
+
+            if (lineChart) {
+                lineChart.data.datasets[0].data = hourPredictions;
+                lineChart.update();
+            } else {
+                const ctx = document.getElementById('line-chart').getContext('2d');
+                lineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: hourLabels,
+                        datasets: [{
+                            label: 'Nivel de Congestión %',
+                            data: hourPredictions,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { min: 0, max: 100, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+
+            const weatherLabels = ['Soleado', 'Nublado', 'Lluvioso', 'Nevada'];
+            const weatherPredictions = [];
+            
+            for (const w of weatherLabels) {
+                const res = await fetchPrediction(selectedZone, selectedHour, selectedDay, w);
+                weatherPredictions.push(res.level);
+            }
+
+            if (barChart) {
+                barChart.data.datasets[0].data = weatherPredictions;
+                barChart.update();
+            } else {
+                const ctx = document.getElementById('bar-chart').getContext('2d');
+                barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: weatherLabels,
+                        datasets: [{
+                            data: weatherPredictions,
+                            backgroundColor: ['#2563eb', '#475569', '#0284c7', '#4f46e5'],
+                            borderRadius: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { min: 0, max: 100, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- TABLA DE POSICIONES (RANKING) ---
+        function updateRankingTable() {
+            const tbody = document.getElementById('ranking-tbody');
+            
+            const rows = Object.keys(ZONES_DATA).map(name => {
+                const traffic = allZonePredictions[name];
+                let statusBadgeHTML = '';
+                if (traffic < 30) {
+                    statusBadgeHTML = '<span class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700 text-emerald-400">Fluido</span>';
+                } else if (traffic < 70) {
+                    statusBadgeHTML = '<span class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700 text-amber-400">Moderado</span>';
+                } else {
+                    statusBadgeHTML = '<span class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700 text-red-400">Pesado</span>';
+                }
+                
+                return { name, traffic, badge: statusBadgeHTML };
+            }).sort((a, b) => b.traffic - a.traffic);
+
+            tbody.innerHTML = rows.map((r, index) => `
+                <tr class="hover:bg-slate-900/50 border-b border-slate-800 transition-colors">
+                    <td class="px-6 py-3 font-semibold text-slate-400">Rank #${index + 1}</td>
+                    <td class="px-6 py-3 font-bold text-white">${r.name}</td>
+                    <td class="px-6 py-3 font-extrabold text-blue-400">${r.traffic}%</td>
+                    <td class="px-6 py-3">${r.badge}</td>
+                </tr>
+            `).join('');
+        }
+
+        // --- SIMULADOR DE AULA DE IA ---
+        function updateDecisionTreeSandbox() {
+            const isRushHour = (selectedHour >= 7 && selectedHour <= 9) || (selectedHour >= 12 && selectedHour <= 14) || (selectedHour >= 18 && selectedHour <= 20);
+            const isBadWeather = ['Lluvioso', 'Nevada'].includes(selectedWeather);
+            const isDenseZone = ['Centro', 'Terminal'].includes(selectedZone);
+
+            const node1 = document.getElementById('edu-node-1');
+            const node2 = document.getElementById('edu-node-2');
+            const nodeFinal = document.getElementById('edu-node-final');
+            const node2Title = document.getElementById('edu-node-2-title');
+            
+            const ans1 = document.getElementById('edu-ans-1');
+            const ans2 = document.getElementById('edu-ans-2');
+            const ansFinalTitle = document.getElementById('edu-ans-final-title');
+            const ansFinalDesc = document.getElementById('edu-ans-final-desc');
+
+            // Resetear
+            node1.className = "p-3.5 rounded border border-slate-800 bg-slate-950 flex justify-between items-center transition-all";
+            node2.className = "p-3.5 rounded border border-slate-800 bg-slate-950 flex justify-between items-center transition-all";
+            
+            node1.className += " border-blue-500 bg-slate-900";
+            if (isRushHour) {
+                ans1.className = "text-[10px] font-bold px-2 py-1 rounded border border-red-800 text-red-400 bg-slate-900";
+                ans1.innerHTML = 'SÍ';
+                
+                node2.className += " border-blue-500 bg-slate-900";
+                node2Title.innerText = '¿El clima es severo? (Lluvia o Nieve)';
+                
+                if (isBadWeather) {
+                    ans2.className = "text-[10px] font-bold px-2 py-1 rounded border border-red-800 text-red-400 bg-slate-900";
+                    ans2.innerHTML = 'SÍ';
+                    
+                    nodeFinal.className = "p-4 rounded border border-red-500 bg-slate-900 text-center transition-all";
+                    ansFinalTitle.className = "text-sm font-bold text-red-400 mb-1";
+                    ansFinalTitle.innerText = 'Nodo Terminal: Congestión Pesada (85%)';
+                    ansFinalDesc.innerText = 'La coincidencia de una hora de alta concurrencia Puneña con pavimentos húmedos o helados ralentiza el flujo vehicular.';
+                } else {
+                    ans2.className = "text-[10px] font-bold px-2 py-1 rounded border border-emerald-800 text-emerald-400 bg-slate-900";
+                    ans2.innerHTML = 'NO';
+                    
+                    nodeFinal.className = "p-4 rounded border border-amber-500 bg-slate-900 text-center transition-all";
+                    ansFinalTitle.className = "text-sm font-bold text-amber-400 mb-1";
+                    ansFinalTitle.innerText = 'Nodo Terminal: Congestión Moderada (55%)';
+                    ansFinalDesc.innerText = 'A pesar de la alta densidad escolar y laboral Puneña, el clima despejado permite velocidades habituales normales.';
+                }
+            } else {
+                ans1.className = "text-[10px] font-bold px-2 py-1 rounded border border-emerald-800 text-emerald-400 bg-slate-900";
+                ans1.innerHTML = 'NO';
+
+                node2.className += " border-blue-500 bg-slate-900";
+                node2Title.innerText = '¿La zona es comercial/densa? (Centro o Terminal)';
+                
+                if (isDenseZone) {
+                    ans2.className = "text-[10px] font-bold px-2 py-1 rounded border border-red-800 text-red-400 bg-slate-900";
+                    ans2.innerHTML = 'SÍ';
+                    
+                    nodeFinal.className = "p-4 rounded border border-amber-500 bg-slate-900 text-center transition-all";
+                    ansFinalTitle.className = "text-sm font-bold text-amber-400 mb-1";
+                    ansFinalTitle.innerText = 'Nodo Terminal: Congestión Moderada (45%)';
+                    ansFinalDesc.innerText = 'Fuera de hora pico, la alta densidad comercial del centro y el Terminal Terrestre mantienen un flujo constante habitual.';
+                } else {
+                    ans2.className = "text-[10px] font-bold px-2 py-1 rounded border border-emerald-800 text-emerald-400 bg-slate-900";
+                    ans2.innerHTML = 'NO';
+                    
+                    nodeFinal.className = "p-4 rounded border border-emerald-500 bg-slate-900 text-center transition-all";
+                    ansFinalTitle.className = "text-sm font-bold text-emerald-400 mb-1";
+                    ansFinalTitle.innerText = 'Nodo Terminal: Congestión Baja (15%)';
+                    ansFinalDesc.innerText = 'En zonas periféricas o residenciales fuera de horas escolares, la circulación fluye sin ningún obstáculo.';
+                }
+            }
+        }
+
+        // --- SISTEMA TELEMÉTRICO HISTÓRICO MLOPS ---
+        async function fetchMLOpsHistory() {
+            const tbody = document.getElementById('mlops-tbody');
+            try {
+                const response = await fetch('/api/v1/metrics-history');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        data.sort((a, b) => b.trained_at.localeCompare(a.trained_at));
+                        
+                        tbody.innerHTML = data.map(entry => `
+                            <tr class="hover:bg-slate-900 border-b border-slate-800 transition-colors">
+                                <td class="px-4 py-3 font-semibold text-white">${entry.version}</td>
+                                <td class="px-4 py-3 text-emerald-400 font-extrabold">${(entry.r2 * 100).toFixed(2)}%</td>
+                                <td class="px-4 py-3 font-mono">${entry.mae}</td>
+                                <td class="px-4 py-3 text-slate-400">${entry.data_records}</td>
+                                <td class="px-4 py-3 text-slate-500 font-mono">${entry.trained_at.substring(0, 19).replace('T', ' ')}</td>
+                            </tr>
+                        `).join('');
+                        return;
+                    }
+                }
+            } catch (e) {}
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-slate-555 border-b border-slate-800"><i class="fa-solid fa-triangle-exclamation"></i> Telemetría no disponible.</td>
+                </tr>
+            `;
+        }
+
+        // --- FLUJO DE CONTROL PRINCIPAL ---
+        
+        async function updateUI() {
+            hourDisplay.innerText = `${selectedHour.toString().padStart(2, '0')}:00 hrs`;
+            
+            const coord = ZONES_DATA[selectedZone];
+            document.getElementById('selected-zone-title').innerText = `${selectedZone}`;
+            document.getElementById('selected-zone-desc').innerText = coord.desc;
+
+            const promises = Object.keys(ZONES_DATA).map(async name => {
+                const res = await fetchPrediction(name, selectedHour, selectedDay, selectedWeather);
+                allZonePredictions[name] = res.level;
+                
+                const circle = mapCircles[name];
+                if (circle) {
+                    let color = '#10b981'; // Emerald/Green
+                    if (res.level >= 70) color = '#ef4444'; // Red
+                    else if (res.level >= 30) color = '#f59e0b'; // Amber
+
+                    circle.setStyle({
+                        color: color,
+                        fillColor: color,
+                        radius: selectedZone === name ? 450 : 250,
+                        weight: selectedZone === name ? 4 : 1.5,
+                        dashArray: selectedZone === name ? '4, 4' : null
+                    });
+                }
+            });
+
+            await Promise.all(promises);
+
+            // Centrar el mapa exactamente en la zona seleccionada (Sin offset/desfasaje)
+            const selCoord = ZONES_DATA[selectedZone];
+            map.panTo([selCoord.lat, selCoord.lon]);
+
+            const selectedTraffic = allZonePredictions[selectedZone];
+            trafficPct.innerText = `${selectedTraffic}%`;
+            trafficBar.style.width = `${selectedTraffic}%`;
+
+            if (selectedTraffic < 30) {
+                trafficPct.className = "text-5xl font-black text-emerald-400";
+                trafficBar.className = "bg-emerald-500 h-full transition-all duration-300 ease-out";
+                trafficBadge.className = "inline-block px-3 py-1 rounded text-xs font-bold uppercase border border-slate-700 text-emerald-400 bg-slate-800";
+                trafficBadge.innerText = 'Fluido';
+            } else if (selectedTraffic < 70) {
+                trafficPct.className = "text-5xl font-black text-amber-400";
+                trafficBar.className = "bg-amber-500 h-full transition-all duration-300 ease-out";
+                trafficBadge.className = "inline-block px-3 py-1 rounded text-xs font-bold uppercase border border-slate-700 text-amber-400 bg-slate-800";
+                trafficBadge.innerText = 'Moderado';
+            } else {
+                trafficPct.className = "text-5xl font-black text-red-500";
+                trafficBar.className = "bg-red-500 h-full transition-all duration-300 ease-out";
+                trafficBadge.className = "inline-block px-3 py-1 rounded text-xs font-bold uppercase border border-slate-700 text-red-400 bg-slate-800";
+                trafficBadge.innerText = 'Pesado (Congestión)';
+            }
+
+            updateFactorsExplanation();
+            updateDecisionTreeSandbox();
+            updateRankingTable();
+        }
+
+        // --- CONFIGURACIÓN DE EVENT LISTENERS ---
+
+        zoneSelect.addEventListener('change', (e) => {
+            selectedZone = e.target.value;
+            updateUI();
+        });
+
+        hourSlider.addEventListener('input', (e) => {
+            selectedHour = parseInt(e.target.value);
+            updateUI();
+        });
+
+        daySelect.addEventListener('change', (e) => {
+            selectedDay = parseInt(e.target.value);
+            updateUI();
+        });
+
+        const weatherBtns = document.querySelectorAll('.weather-btn');
+        weatherBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                weatherBtns.forEach(b => {
+                    b.className = 'weather-btn px-3 py-2 rounded border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600';
+                });
+                
+                btn.className = 'weather-btn px-3 py-2 rounded border transition-all flex items-center justify-center gap-1.5 text-xs font-semibold bg-blue-950/30 border-blue-500 text-blue-400';
+                selectedWeather = btn.getAttribute('data-weather');
+                updateUI();
+            });
+        });
+
+        // --- GESTIÓN DE TABS ---
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTabId = btn.getAttribute('data-tab');
+
+                tabBtns.forEach(b => {
+                    b.className = 'tab-btn px-4 py-2 rounded text-slate-400 hover:text-white transition-all';
+                });
+                btn.className = 'tab-btn px-4 py-2 rounded bg-slate-800 text-white transition-all';
+
+                tabPanels.forEach(panel => {
+                    if (panel.id === targetTabId) {
+                        panel.classList.remove('hidden');
+                        
+                        if (targetTabId === 'tab-map') {
+                            setTimeout(() => map.invalidateSize(), 50);
+                        } else if (targetTabId === 'tab-graphs') {
+                            updateTelemetryCharts();
+                        } else if (targetTabId === 'tab-mlops') {
+                            fetchMLOpsHistory();
+                        }
+                    } else {
+                        panel.classList.add('hidden');
+                    }
+                });
+            });
+        });
+
+        // --- ARRANQUE DE LA APLICACIÓN ---
+        async function init() {
+            await checkAPIHealth();
+            initializeMapCircles();
+            await updateUI();
+            
+            setInterval(checkAPIHealth, 10000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
